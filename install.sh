@@ -124,8 +124,41 @@ main() {
     # Download binary
     local download_path="${install_dir}/downloads/${binary_name}-${version}-${platform}"
     local binary_url="${MIRROR_BASE_URL}/${version}/${platform}/${binary_name}"
-    info "Downloading ${binary_name} ${version}..."
-    curl -fSL --progress-bar -o "$download_path" "$binary_url" || die "Download failed"
+    info "Downloading ${binary_name} ${version} ..."
+    info "URL: ${binary_url}"
+
+    # Show a spinner with file size while downloading
+    rm -f "$download_path"
+    curl -fsSL -o "$download_path" "$binary_url" &
+    local curl_pid=$!
+    local spin=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+    local i=0
+    while kill -0 "$curl_pid" 2>/dev/null; do
+        local size=0
+        if [ -f "$download_path" ]; then
+            if stat --version &>/dev/null 2>&1; then
+                size="$(stat -c%s "$download_path" 2>/dev/null || echo 0)"
+            else
+                size="$(stat -f%z "$download_path" 2>/dev/null || echo 0)"
+            fi
+        fi
+        local size_mb
+        size_mb="$(awk "BEGIN{printf \"%.1f\", ${size}/1048576}")"
+        printf "\r  ${spin[$((i % ${#spin[@]}))]}  ${size_mb} MB downloaded" >&2
+        i=$((i + 1))
+        sleep 0.2
+    done
+    wait "$curl_pid" || { printf "\n" >&2; die "Download failed"; }
+    printf "\r\033[K" >&2
+
+    # Show final size
+    local file_size
+    if stat --version &>/dev/null 2>&1; then
+        file_size="$(stat -c%s "$download_path")"
+    else
+        file_size="$(stat -f%z "$download_path")"
+    fi
+    info "Downloaded $(awk "BEGIN{printf \"%.1f\", ${file_size}/1048576}") MB"
 
     # Verify checksum
     info "Verifying checksum..."

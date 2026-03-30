@@ -31,10 +31,10 @@ docker compose up -d
 
 ```bash
 # 安装最新版
-curl -fsSL http://<mirror>/install.sh | MIRROR_URL=http://<mirror> bash
+curl -fsSL http://<mirror>/install.sh | bash
 
 # 安装指定版本
-curl -fsSL http://<mirror>/install.sh | MIRROR_URL=http://<mirror> bash -s 2.1.81
+curl -fsSL http://<mirror>/install.sh | bash -s 2.1.81
 
 # 查看最新版本号
 curl http://<mirror>/version

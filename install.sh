@@ -9,8 +9,9 @@ set -euo pipefail
 #   curl -fsSL https://<mirror>/install.sh | bash -s <version>
 # =============================================================================
 
-# 可通过环境变量覆盖：curl ... | MIRROR_URL=https://mirror.example.com bash
-MIRROR_URL="${MIRROR_URL:-http://example.com}"
+# MIRROR_URL 由 Caddy 模板自动注入（curl | bash 场景）
+# 也可通过环境变量手动覆盖：curl ... | MIRROR_URL=https://mirror.example.com bash
+MIRROR_URL="${MIRROR_URL:-{{placeholder "http.request.scheme"}}://{{.Host}}}"
 MIRROR_BASE_URL="${MIRROR_URL}/storage"
 
 # ---------------------------------------------------------------------------

@@ -14,9 +14,12 @@
 }
 
 http://{$MIRROR_DOMAIN:localhost} {
-    # Serve custom install script
+    # Serve install script with MIRROR_URL injected via template
     handle /install.sh {
         root * /srv
+        templates {
+            mime text/plain application/x-sh
+        }
         file_server
     }
 

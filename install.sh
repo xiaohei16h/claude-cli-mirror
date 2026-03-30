@@ -124,10 +124,19 @@ main() {
     # Download binary
     local download_path="${install_dir}/downloads/${binary_name}-${version}-${platform}"
     local binary_url="${MIRROR_BASE_URL}/${version}/${platform}/${binary_name}"
-    info "Downloading ${binary_name} ${version} ..."
+    # Get total file size via HEAD request
+    local total_size
+    total_size="$(curl -fsSLI "$binary_url" 2>/dev/null | grep -i '^content-length:' | tail -1 | tr -dc '0-9')"
+    local total_mb
+    total_mb="$(awk "BEGIN{printf \"%.1f\", ${total_size:-0}/1048576}")"
+    if [ -n "$total_size" ] && [ "$total_size" -gt 0 ] 2>/dev/null; then
+        info "Downloading ${binary_name} ${version} (${total_mb} MB) ..."
+    else
+        info "Downloading ${binary_name} ${version} ..."
+    fi
     info "URL: ${binary_url}"
 
-    # Show a spinner with file size while downloading
+    # Show a spinner with progress while downloading
     rm -f "$download_path"
     curl -fsSL -o "$download_path" "$binary_url" &
     local curl_pid=$!
@@ -144,7 +153,22 @@ main() {
         fi
         local size_mb
         size_mb="$(awk "BEGIN{printf \"%.1f\", ${size}/1048576}")"
-        printf "\r  ${spin[$((i % ${#spin[@]}))]}  ${size_mb} MB downloaded" >&2
+        if [ -n "$total_size" ] && [ "$total_size" -gt 0 ] 2>/dev/null; then
+            local pct
+            pct="$(awk "BEGIN{printf \"%.0f\", ${size}/${total_size}*100}")"
+            # Color: green >=75%, yellow >=25%, red <25%
+            local pct_color
+            if [ "$pct" -ge 75 ] 2>/dev/null; then
+                pct_color="${GREEN}"
+            elif [ "$pct" -ge 25 ] 2>/dev/null; then
+                pct_color="${YELLOW}"
+            else
+                pct_color="${RED}"
+            fi
+            printf "\r  ${spin[$((i % ${#spin[@]}))]}  ${size_mb} / ${total_mb} MB  ${pct_color}[${pct}%%]${NC}" >&2
+        else
+            printf "\r  ${spin[$((i % ${#spin[@]}))]}  ${size_mb} MB downloaded" >&2
+        fi
         i=$((i + 1))
         sleep 0.2
     done

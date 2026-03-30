@@ -13,7 +13,7 @@
     }
 }
 
-http://{$MIRROR_DOMAIN:localhost} {
+http://{$MIRROR_DOMAIN:localhost}:{$HTTP_PORT:80} {
     # Serve install script with MIRROR_URL injected via template
     handle /install.sh {
         root * /srv

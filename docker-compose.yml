@@ -5,9 +5,9 @@ services:
     dns:
       - 26.26.26.53
     ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
+      - "${HTTP_PORT:-80}:${HTTP_PORT:-80}"
+      - "${HTTPS_PORT:-443}:${HTTPS_PORT:-443}"
+      - "${HTTPS_PORT:-443}:${HTTPS_PORT:-443}/udp"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ./install.sh:/srv/install.sh:ro
@@ -17,6 +17,8 @@ services:
       - MIRROR_DOMAIN=${MIRROR_DOMAIN:-localhost}
       - GCS_BUCKET=${GCS_BUCKET:-claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819}
       - AUTO_HTTPS=${AUTO_HTTPS:-off}
+      - HTTP_PORT=${HTTP_PORT:-80}
+      - HTTPS_PORT=${HTTPS_PORT:-443}
 
 volumes:
   caddy_data:

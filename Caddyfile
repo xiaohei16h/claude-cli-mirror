@@ -1,0 +1,53 @@
+{
+    auto_https {$AUTO_HTTPS:off}
+}
+
+(gcs_proxy) {
+    header_up Host storage.googleapis.com
+    header_up -X-Forwarded-For
+    header_up -X-Forwarded-Host
+    header_up -X-Forwarded-Proto
+    transport http {
+        tls
+        tls_server_name storage.googleapis.com
+    }
+}
+
+http://{$MIRROR_DOMAIN:localhost} {
+    # Serve custom install script
+    handle /install.sh {
+        root * /srv
+        file_server
+    }
+
+    # Return latest stable version
+    handle /version {
+        rewrite * /{$GCS_BUCKET}/claude-code-releases/stable
+        reverse_proxy https://storage.googleapis.com {
+            import gcs_proxy
+        }
+    }
+
+    # Health check
+    handle /health {
+        respond "ok" 200
+    }
+
+    # Proxy binary downloads to GCS
+    # handle_path strips /storage prefix before passing to inner directives
+    handle_path /storage/* {
+        rewrite * /{$GCS_BUCKET}/claude-code-releases{uri}
+        reverse_proxy https://storage.googleapis.com {
+            import gcs_proxy
+        }
+    }
+
+    handle {
+        respond "Not found" 404
+    }
+
+    log {
+        output stdout
+        format console
+    }
+}

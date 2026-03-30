@@ -23,6 +23,8 @@ docker compose up -d
 |------|--------|------|
 | `MIRROR_DOMAIN` | `localhost` | 镜像站域名 |
 | `GCS_BUCKET` | `claude-code-dist-...` | GCS bucket 前缀（一般无需修改） |
+| `HTTP_PORT` | `80` | HTTP 监听端口 |
+| `HTTPS_PORT` | `443` | HTTPS 监听端口 |
 | `AUTO_HTTPS` | `off` | HTTPS 模式。`off` = 仅 HTTP；`on` = 自动 Let's Encrypt 证书 |
 
 默认使用 HTTP 协议。如需启用 HTTPS，在 `.env` 中设置 `AUTO_HTTPS=on`，Caddy 会自动申请 Let's Encrypt 证书。

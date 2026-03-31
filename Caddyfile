@@ -25,8 +25,8 @@ http://{$MIRROR_DOMAIN:localhost} {
         file_server
     }
 
-    # Return latest version from npm registry
-    handle /version {
+    # Internal: proxy npm registry JSON
+    handle /_internal/npm-version {
         rewrite * /@anthropic-ai/claude-code/latest
         reverse_proxy https://registry.npmjs.org {
             header_up Host registry.npmjs.org
@@ -38,6 +38,16 @@ http://{$MIRROR_DOMAIN:localhost} {
                 tls_server_name registry.npmjs.org
             }
         }
+    }
+
+    # Return latest version as plain text
+    handle /version {
+        root * /srv
+        rewrite * /version.txt
+        templates {
+            mime text/plain application/octet-stream
+        }
+        file_server
     }
 
     # Return stable version from GCS

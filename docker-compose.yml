@@ -9,6 +9,7 @@ services:
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ./install.sh:/srv/install.sh:ro
+      - ./version.txt:/srv/version.txt:ro
       - caddy_data:/data
       - caddy_config:/config
     environment:

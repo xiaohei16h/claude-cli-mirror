@@ -64,22 +64,7 @@ installed_version() {
 }
 
 fetch_remote_version() {
-    local ver=""
-    # Try mirror's /version endpoint (proxies npm registry)
-    ver="$(curl -fsSL --max-time 10 "${MIRROR_URL}/version" 2>/dev/null \
-        | grep -o '"version":"[^"]*"' | head -1 | sed 's/"version":"//;s/"//')" || true
-    if [ -n "$ver" ]; then
-        echo "$ver"
-        return
-    fi
-    # Fallback: query npm directly
-    ver="$(curl -fsSL --max-time 5 "https://registry.npmjs.org/@anthropic-ai/claude-code/latest" 2>/dev/null \
-        | grep -o '"version":"[^"]*"' | head -1 | sed 's/"version":"//;s/"//')" || true
-    if [ -n "$ver" ]; then
-        echo "$ver"
-        return
-    fi
-    die "Failed to fetch latest version"
+    curl -fsSL --max-time 10 "${MIRROR_URL}/version" || die "Failed to fetch latest version"
 }
 
 # ---------------------------------------------------------------------------

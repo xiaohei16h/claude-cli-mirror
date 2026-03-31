@@ -1,0 +1,1 @@
+{{$body := httpInclude "/_internal/npm-version"}}{{regexReplaceAll `(?s).*"version"\s*:\s*"([^"]*)".*` $body "${1}"}}

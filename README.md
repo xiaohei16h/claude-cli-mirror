@@ -25,6 +25,8 @@ docker compose up -d
 | `GCS_BUCKET` | `claude-code-dist-...` | GCS bucket 前缀（一般无需修改） |
 | `HTTP_PORT` | `80` | HTTP 监听端口 |
 | `HTTPS_PORT` | `443` | HTTPS 监听端口（仅 `AUTO_HTTPS=on` 时生效） |
+| `CACHE_ENABLED` | `true` | 下载缓存。`true` = 缓存到本地，`false` = 直接透传 GCS |
+| `MAX_VERSIONS` | `3` | 最大缓存版本数，超出自动清理旧版本 |
 | `AUTO_HTTPS` | `off` | HTTPS 模式。`off` = 仅 HTTP；`on` = 自动 Let's Encrypt 证书 |
 
 默认使用 HTTP 协议。如需启用 HTTPS，在 `.env` 中设置 `AUTO_HTTPS=on`，Caddy 会自动申请 Let's Encrypt 证书。
@@ -54,7 +56,7 @@ curl http://<mirror>/version
 | `/install.sh` | 安装脚本 |
 | `/version` | 最新版本号（npm registry） |
 | `/version/stable` | 稳定版本号（GCS） |
-| `/storage/{path}` | 代理 GCS 二进制下载 |
+| `/storage/{path}` | 二进制下载（自动缓存） |
 | `/health` | 健康检查 |
 
 ## 本地测试
@@ -67,6 +69,12 @@ curl http://localhost/install.sh     # => 安装脚本内容
 curl http://localhost/version        # => latest (npm)
 curl http://localhost/version/stable # => stable (GCS)
 ```
+
+## 缓存
+
+默认开启下载缓存，首次请求从 GCS 下载并保存到 `./data/cache/`，后续请求直接返回本地文件。自动清理旧版本，只保留最新 3 个（可通过 `MAX_VERSIONS` 配置）。
+
+设置 `CACHE_ENABLED=false` 关闭缓存，所有请求直接透传 GCS。
 
 ## 注意事项
 

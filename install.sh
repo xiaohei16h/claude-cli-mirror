@@ -64,6 +64,15 @@ installed_version() {
 }
 
 fetch_remote_version() {
+    local ver=""
+    # Try npm registry first (most up-to-date)
+    ver="$(curl -fsSL --max-time 5 "https://registry.npmjs.org/@anthropic-ai/claude-code/latest" 2>/dev/null \
+        | grep -o '"version":"[^"]*"' | head -1 | sed 's/"version":"//;s/"//')" || true
+    if [ -n "$ver" ]; then
+        echo "$ver"
+        return
+    fi
+    # Fallback to mirror's /version endpoint
     curl -fsSL "${MIRROR_URL}/version" || die "Failed to fetch latest version"
 }
 
@@ -71,7 +80,7 @@ fetch_remote_version() {
 # Main
 # ---------------------------------------------------------------------------
 main() {
-    local channel="${1:-stable}"
+    local channel="${1:-latest}"
     local os arch libc platform version
 
     os="$(detect_os)"
@@ -82,9 +91,12 @@ main() {
     info "Platform: ${platform}"
 
     # Resolve version
-    if [ "$channel" = "stable" ] || [ "$channel" = "latest" ]; then
-        info "Fetching latest stable version..."
+    if [ "$channel" = "latest" ]; then
+        info "Fetching latest version..."
         version="$(fetch_remote_version)"
+    elif [ "$channel" = "stable" ]; then
+        info "Fetching stable version..."
+        version="$(curl -fsSL "${MIRROR_URL}/version")" || die "Failed to fetch stable version"
     else
         version="$channel"
     fi

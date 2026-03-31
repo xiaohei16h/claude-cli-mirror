@@ -57,9 +57,20 @@ detect_libc() {
 # Version helpers
 # ---------------------------------------------------------------------------
 installed_version() {
-    local claude_bin="${HOME}/.claude/bin/claude"
-    if [ -x "$claude_bin" ]; then
-        "$claude_bin" --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true
+    local bin=""
+    # Check common install locations
+    for p in "${HOME}/.local/bin/claude" "${HOME}/.claude/bin/claude"; do
+        if [ -x "$p" ]; then
+            bin="$p"
+            break
+        fi
+    done
+    # Fallback: check PATH
+    if [ -z "$bin" ] && command -v claude &>/dev/null; then
+        bin="$(command -v claude)"
+    fi
+    if [ -n "$bin" ]; then
+        "$bin" --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true
     fi
 }
 
@@ -98,7 +109,7 @@ main() {
     current="$(installed_version)"
     if [ -n "$current" ] && [ "$current" = "$version" ]; then
         info "Claude Code ${version} is already installed and up-to-date."
-        info "Location: ${HOME}/.claude/bin/claude"
+        info "Location: $(command -v claude 2>/dev/null || echo "${HOME}/.claude/bin/claude")"
         exit 0
     fi
     if [ -n "$current" ]; then

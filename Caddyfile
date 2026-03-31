@@ -25,8 +25,23 @@ http://{$MIRROR_DOMAIN:localhost} {
         file_server
     }
 
-    # Return latest stable version
+    # Return latest version from npm registry
     handle /version {
+        rewrite * /@anthropic-ai/claude-code/latest
+        reverse_proxy https://registry.npmjs.org {
+            header_up Host registry.npmjs.org
+            header_up -X-Forwarded-For
+            header_up -X-Forwarded-Host
+            header_up -X-Forwarded-Proto
+            transport http {
+                tls
+                tls_server_name registry.npmjs.org
+            }
+        }
+    }
+
+    # Return stable version from GCS
+    handle /version/stable {
         rewrite * /{$GCS_BUCKET}/claude-code-releases/stable
         reverse_proxy https://storage.googleapis.com {
             import gcs_proxy

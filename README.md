@@ -32,11 +32,14 @@ docker compose up -d
 ## 用户使用
 
 ```bash
-# 安装最新版
+# 安装最新版（默认从 npm registry 获取）
 curl -fsSL http://<mirror>/install.sh | bash
 
+# 安装 stable 版（GCS 标记的稳定版）
+curl -fsSL http://<mirror>/install.sh | bash -s stable
+
 # 安装指定版本
-curl -fsSL http://<mirror>/install.sh | bash -s 2.1.81
+curl -fsSL http://<mirror>/install.sh | bash -s 2.1.88
 
 # 查看最新版本号
 curl http://<mirror>/version
@@ -49,7 +52,8 @@ curl http://<mirror>/version
 | 路径 | 说明 |
 |------|------|
 | `/install.sh` | 安装脚本 |
-| `/version` | 最新稳定版本号 |
+| `/version` | 最新版本号（npm registry） |
+| `/version/stable` | 稳定版本号（GCS） |
 | `/storage/{path}` | 代理 GCS 二进制下载 |
 | `/health` | 健康检查 |
 
@@ -60,7 +64,8 @@ docker compose up -d
 
 curl http://localhost/health         # => ok
 curl http://localhost/install.sh     # => 安装脚本内容
-curl http://localhost/version        # => 2.1.81
+curl http://localhost/version        # => latest (npm)
+curl http://localhost/version/stable # => stable (GCS)
 ```
 
 ## 注意事项

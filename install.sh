@@ -117,9 +117,10 @@ main() {
     fi
 
     # Prepare directories
-    local install_dir="${HOME}/.claude"
+    local install_dir="${HOME}/.local"
     local bin_dir="${install_dir}/bin"
-    mkdir -p "$bin_dir" "${install_dir}/downloads"
+    local download_dir="${HOME}/.claude/downloads"
+    mkdir -p "$bin_dir" "$download_dir"
 
     # Download manifest
     info "Downloading manifest..."
@@ -136,7 +137,7 @@ main() {
     binary_name="${binary_name:-claude}"
 
     # Download binary
-    local download_path="${install_dir}/downloads/${binary_name}-${version}-${platform}"
+    local download_path="${download_dir}/${binary_name}-${version}-${platform}"
     local binary_url="${MIRROR_BASE_URL}/${version}/${platform}/${binary_name}"
     # Get total file size via HEAD request
     local total_size
@@ -222,7 +223,7 @@ main() {
 
     # Update PATH in shell config
     local shell_config=""
-    local path_entry='export PATH="${HOME}/.claude/bin:${PATH}"'
+    local path_entry='export PATH="${HOME}/.local/bin:${PATH}"'
 
     if [ "$(basename "${SHELL:-}")" = "zsh" ] || [ -n "${ZSH_VERSION:-}" ]; then
         shell_config="${HOME}/.zshrc"
@@ -230,7 +231,7 @@ main() {
         shell_config="${HOME}/.bashrc"
     fi
 
-    if [ -n "$shell_config" ] && [ -f "$shell_config" ] && ! grep -q '.claude/bin' "$shell_config"; then
+    if [ -n "$shell_config" ] && [ -f "$shell_config" ] && ! grep -q '.local/bin' "$shell_config"; then
         printf '\n# Claude Code CLI\n%s\n' "$path_entry" >> "$shell_config"
         info "Added PATH to ${shell_config}"
     fi

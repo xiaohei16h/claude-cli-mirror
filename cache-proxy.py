@@ -39,6 +39,33 @@ def cleanup_old_versions():
 
 
 class CacheHandler(BaseHTTPRequestHandler):
+    def do_HEAD(self):
+        """Handle HEAD requests for Content-Length checks."""
+        path = self.path
+        cache_path = CACHE_DIR / path.lstrip("/")
+
+        if CACHE_ENABLED and cache_path.exists() and cache_path.is_file():
+            size = cache_path.stat().st_size
+            self.send_response(200)
+            self.send_header("Content-Length", str(size))
+            self.send_header("Content-Type", "application/octet-stream")
+            self.end_headers()
+            return
+
+        # Proxy HEAD to GCS
+        upstream = gcs_url(path)
+        try:
+            req = Request(upstream, method="HEAD")
+            resp = urlopen(req, timeout=10)
+            self.send_response(200)
+            cl = resp.headers.get("Content-Length")
+            if cl:
+                self.send_header("Content-Length", cl)
+            self.send_header("Content-Type", resp.headers.get("Content-Type", "application/octet-stream"))
+            self.end_headers()
+        except URLError as e:
+            self.send_error(502, f"Upstream error: {e}")
+
     def do_GET(self):
         path = self.path
         if path == "/health":

@@ -3,11 +3,16 @@
 
 import os
 import shutil
+import socketserver
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.request import urlopen, Request
 from urllib.error import URLError
+
+
+class ThreadingHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
+    daemon_threads = True
 
 GCS_BUCKET = os.environ.get(
     "GCS_BUCKET", "claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819"
@@ -107,44 +112,55 @@ class CacheHandler(BaseHTTPRequestHandler):
             # Stream to client and save to cache simultaneously
             cache_path.parent.mkdir(parents=True, exist_ok=True)
             tmp_path = cache_path.with_suffix(".tmp")
+            client_disconnected = False
             try:
                 with open(tmp_path, "wb") as f:
                     while True:
                         chunk = resp.read(65536)
                         if not chunk:
                             break
-                        self.wfile.write(chunk)
                         f.write(chunk)
+                        if not client_disconnected:
+                            try:
+                                self.wfile.write(chunk)
+                            except (BrokenPipeError, ConnectionResetError):
+                                client_disconnected = True
+                                print(f"[cache] Client disconnected, continuing cache save: {path}")
+                # Always save to cache even if client disconnected
                 tmp_path.rename(cache_path)
                 print(f"[cache] SAVED {path}")
-                # Cleanup in background
                 threading.Thread(target=cleanup_old_versions, daemon=True).start()
             except Exception as e:
                 print(f"[cache] SAVE ERROR {path}: {e}")
                 tmp_path.unlink(missing_ok=True)
         else:
             # Pass-through without caching
-            while True:
-                chunk = resp.read(65536)
-                if not chunk:
-                    break
-                self.wfile.write(chunk)
+            try:
+                while True:
+                    chunk = resp.read(65536)
+                    if not chunk:
+                        break
+                    self.wfile.write(chunk)
+            except (BrokenPipeError, ConnectionResetError):
+                print(f"[cache] Client disconnected: {path}")
 
     def _serve_file(self, path: Path):
         size = path.stat().st_size
-        # Guess content type
         suffix = path.suffix.lower()
         ct = {".json": "application/json"}.get(suffix, "application/octet-stream")
         self.send_response(200)
         self.send_header("Content-Type", ct)
         self.send_header("Content-Length", str(size))
         self.end_headers()
-        with open(path, "rb") as f:
-            while True:
-                chunk = f.read(65536)
-                if not chunk:
-                    break
-                self.wfile.write(chunk)
+        try:
+            with open(path, "rb") as f:
+                while True:
+                    chunk = f.read(65536)
+                    if not chunk:
+                        break
+                    self.wfile.write(chunk)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
 
     def log_message(self, format, *args):
         # Suppress default access log (we log manually)
@@ -156,7 +172,7 @@ def main():
     cleanup_old_versions()
     mode = "cache" if CACHE_ENABLED else "pass-through"
     print(f"[cache] Starting on :{PORT} mode={mode} max_versions={MAX_VERSIONS}")
-    server = HTTPServer(("0.0.0.0", PORT), CacheHandler)
+    server = ThreadingHTTPServer(("0.0.0.0", PORT), CacheHandler)
     server.serve_forever()
 
 
